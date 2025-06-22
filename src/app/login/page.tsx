@@ -4,9 +4,10 @@ import Background from "@/components/Background";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import Loading from "@/components/Loading";
+import { jwtDecode } from "jwt-decode";
 import Head from "next/head";
 import { useRouter } from "next/navigation";
-import { FormEvent, MouseEvent, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useState } from "react";
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -15,7 +16,6 @@ export default function LoginPage() {
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	// CHAMADA PARA API
 	const handleLogin = async (e: FormEvent) => {
 		e.preventDefault();
 		setError("");
@@ -23,17 +23,35 @@ export default function LoginPage() {
 		const start = Date.now();
 
 		try {
-			const res = await fetch("/api/auth/login", {
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify({email, password}),
-			});
+			const res = await fetch(
+				`${process.env.NEXT_PUBLIC_API_HOST}/auth/signin`,
+				{
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify({email, password}),
+				}
+			);
 
 			const data = await res.json();
 
+			console.log("Login response:", data);
+
 			if (res.ok) {
-				if (data.role === "admin") router.push("/admin/users");
-				else router.push("/profile");
+				localStorage.setItem("token", data.accessToken);
+				const expiresAt = Date.now() + 60 * 60 * 1000;
+				localStorage.setItem("token_expires_at", expiresAt.toString());
+
+				const decoded: any = jwtDecode(data.accessToken);
+				console.log("Roles do usuário:", decoded.authorization);
+
+				if (
+					decoded.authorization &&
+					decoded.authorization.includes("admin")
+				) {
+					router.replace("/admin/users");
+				} else {
+					router.replace("/profile");
+				}
 			} else {
 				setLoading(false);
 				setError(data.message || "Erro no login");
@@ -47,7 +65,6 @@ export default function LoginPage() {
 			setTimeout(() => setLoading(false), Math.max(0, minTime - elapsed));
 		}
 	};
-	//
 
 	const handleHref = (href: string) => (e: MouseEvent) => {
 		e.preventDefault();
@@ -56,6 +73,20 @@ export default function LoginPage() {
 			router.push(href);
 		}, 500);
 	};
+
+	useEffect(() => {
+		const checkToken = () => {
+			const expiresAt = localStorage.getItem("token_expires_at");
+			if (expiresAt && Date.now() > Number(expiresAt)) {
+				localStorage.removeItem("token");
+				localStorage.removeItem("token_expires_at");
+				router.push("/login");
+			}
+		};
+		const interval = setInterval(checkToken, 60 * 1000); // checa a cada minuto
+		checkToken();
+		return () => clearInterval(interval);
+	}, [router]);
 
 	return (
 		<>
