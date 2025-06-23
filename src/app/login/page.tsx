@@ -83,7 +83,7 @@ export default function LoginPage() {
 				router.push("/login");
 			}
 		};
-		const interval = setInterval(checkToken, 60 * 1000); // checa a cada minuto
+		const interval = setInterval(checkToken, 60 * 1000);
 		checkToken();
 		return () => clearInterval(interval);
 	}, [router]);
@@ -140,13 +140,6 @@ export default function LoginPage() {
 							>
 								Criar conta
 							</a>
-							{/* <a
-								href="/forgot-password"
-								onClick={handleHref("/forgot-password")}
-								className="text-sm text-green-600 hover:underline"
-							>
-								Esqueci minha senha
-							</a> */}
 						</div>
 
 						<Button
