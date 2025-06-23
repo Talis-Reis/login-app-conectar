@@ -273,6 +273,18 @@ export default function AdminUsersPage() {
 				user={userToEditRole}
 			/>
 			<div className="max-w-6xl mx-auto mt-8 px-4">
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">
+                    {(() => {
+                        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                        if (!token) return "";
+                        try {
+                            const decoded: any = jwtDecode(token);
+                            return decoded.firstName ? `Olá, ${decoded.firstName} ${decoded.lastName}` : "";
+                        } catch {
+                            return "";
+                        }
+                    })()}
+                </h1>
 				<form
 					onSubmit={handleSearch}
 					className="flex flex-wrap gap-4 items-end mb-4"

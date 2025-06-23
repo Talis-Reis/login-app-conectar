@@ -9,40 +9,74 @@ import { MouseEvent, useState } from "react";
 
 export default function RegisterPage() {
 	const router = useRouter();
-	const [name, setName] = useState("");
+	const [firstName, setFirstName] = useState("");
+	const [lastName, setLastName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [success, setSuccess] = useState("");
 
-	// CHAMADA PARA API
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setError("");
 		setLoading(true);
 
 		try {
-			const res = await fetch("/api/auth/login", {
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify({email, password}),
-			});
+			if (
+				!firstName ||
+				!lastName ||
+				!email ||
+				!password ||
+				!confirmPassword
+			) {
+				setError("Todos os campos são obrigatórios");
+				setLoading(false);
+				return;
+			}
+
+			if (password !== confirmPassword) {
+				setError("As senhas não coincidem");
+				setLoading(false);
+				return;
+			}
+
+			const res = await fetch(
+				`${process.env.NEXT_PUBLIC_API_HOST}/auth/signup`,
+				{
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify({
+						email: email,
+						password: password,
+						firstName: firstName,
+						lastName: lastName,
+						roles: ["admin"],
+					}),
+				}
+			);
 
 			const data = await res.json();
 
+			console.log("Cadastro response:", data);
+
 			if (res.ok) {
-				if (data.role === "admin") router.push("/admin/users");
-				else router.push("/profile");
+				setError("");
+				setLoading(false);
+				setSuccess(data.message || "Cadastro realizado com sucesso!");
+				setTimeout(() => {
+					router.replace("/login");
+				}, 1000);
 			} else {
-				setError(data.message || "Erro no login");
+				setError(data.message || "Erro no cadastro");
+				setLoading(false);
 			}
 		} catch (err) {
 			setError("Erro de conexão com o servidor");
-		} finally {
 			setLoading(false);
 		}
 	};
-	//
 
 	const handleHref = (href: string) => (e: MouseEvent) => {
 		e.preventDefault();
@@ -83,9 +117,17 @@ export default function RegisterPage() {
 
 						<Input
 							type="text"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
+							value={firstName}
+							onChange={(e) => setFirstName(e.target.value)}
 							label="Nome"
+							required
+						/>
+
+						<Input
+							type="text"
+							value={lastName}
+							onChange={(e) => setLastName(e.target.value)}
+							label="Sobrenome"
 							required
 						/>
 
@@ -107,8 +149,8 @@ export default function RegisterPage() {
 
 						<Input
 							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
+							value={confirmPassword}
+							onChange={(e) => setConfirmPassword(e.target.value)}
 							label="Confirme sua senha"
 							required
 						/>
@@ -121,6 +163,14 @@ export default function RegisterPage() {
 							>
 								Já tem uma conta? Faça login
 							</a>
+						</div>
+
+						<div className="flex justify-center mb-6">
+							{success && (
+								<div className="text-green-700 mb-4">
+									{success}
+								</div>
+							)}
 						</div>
 
 						<button
